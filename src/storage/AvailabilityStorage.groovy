@@ -21,9 +21,18 @@ class AvailabilityStorage {
         redis.set(CLICKS, clicks)
     }
 
+    void decrementClicks(){
+        redis.decrement(CLICKS)
+    }
+
     Integer getDisplays() {
         return redis.get(DISPLAYS) ?: 0
     }
+
+    void decrementDisplays(){
+        redis.decrement(DISPLAYS)
+    }
+
 
     void setDisplays(Integer displays) {
         redis.set(DISPLAYS, displays)
