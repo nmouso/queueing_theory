@@ -1,5 +1,6 @@
 package availability
 
+import date.IDateTimeService
 import groovy.time.TimeCategory
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
@@ -11,12 +12,15 @@ class DisplaysManager {
 
     AvailabilityParams availabilityParams
 
+    IDateTimeService dateTimeService
+
     Log log = LogFactory.getLog(DisplaysManager.class)
 
-    DisplaysManager(AvailabilityParams availabilityParams, AvailabilityStorage storage) {
+    DisplaysManager(AvailabilityParams availabilityParams, AvailabilityStorage storage, IDateTimeService dateTimeService) {
 
         this.availabilityParams = availabilityParams
         this.storage = storage
+        this.dateTimeService = dateTimeService
     }
 
     def recalculate() {
@@ -46,12 +50,11 @@ class DisplaysManager {
 
             // Initial values
             displays += availabilityParams.displaysExpectedPerSlot
-            clicks += availabilityParams.clicksExpectedPerSlot
 
             def clickCorrection = correctClicks(displays, clicks)
 
             displays = clickCorrection.displays
-            clicks = clickCorrection.clicks
+            clicks = clickCorrection.clicks + availabilityParams.clicksExpectedPerSlot
 
             // Generate end dates
             Date slotEnd = nowPlusSeconds(availabilityParams.slotInSeconds)
@@ -83,7 +86,7 @@ class DisplaysManager {
             Date date = null
 
             use(TimeCategory) {
-                date = new Date() + seconds.seconds
+                date = dateTimeService.dateTime + seconds.seconds
             }
 
             date
@@ -106,7 +109,7 @@ class DisplaysManager {
         Boolean shouldRecalculate() {
 
             Date slotEnd = storage.getSlotEnd()
-            slotEnd ? (new Date() > slotEnd) : true
+            slotEnd ? (dateTimeService.dateTime >= slotEnd) : true
         }
     }
 
@@ -128,7 +131,15 @@ class DisplaysManager {
         Boolean shouldRecalculate() {
 
             Date periodEnd = storage.getPeriodEnd()
-            periodEnd ? (new Date() > periodEnd) : true
+            periodEnd ? (dateTimeService.dateTime >= periodEnd) : true
+        }
+
+        Map correctClicks(Integer displays, Integer clicks) {
+
+            if (clicks > 0)
+                [displays: displays, clicks: 0]
+            else
+                return super.correctClicks(displays, clicks)
         }
     }
 

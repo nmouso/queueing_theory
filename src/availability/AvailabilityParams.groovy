@@ -2,21 +2,13 @@ package availability
 
 class AvailabilityParams {
 
-    Integer getSlotInSeconds() {
-        return 5
-    }
+    Integer slotInSeconds
 
-    Integer getSlotsPerPeriod() {
-        return 4
-    }
+    Integer slotsPerPeriod
 
-    Double getClickConvergenceRate() {
-        return 0.2d
-    }
+    Double clickConvergenceRate
 
-    Integer getClicksExpectedPerSlot() {
-        return 1
-    }
+    Integer clicksExpectedPerSlot
 
     Integer getDisplaysExpectedPerSlot() {
         return getClicksExpectedPerSlot() / getClickConvergenceRate()
