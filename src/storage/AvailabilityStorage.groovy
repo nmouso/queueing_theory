@@ -8,6 +8,8 @@ class AvailabilityStorage {
     private static final String DISPLAYS = "_displays"
     private static final String SLOT_END = "_slot_end"
     private static final String PERIOD_END = "_period_end"
+    private static final String PARAMS_EXPIRATION_DATE = "_params_expiration_date"
+
 
     AvailabilityStorage(Redis redis) {
         this.redis = redis
@@ -52,6 +54,14 @@ class AvailabilityStorage {
 
     void setPeriodEnd(Date periodEnd) {
         redis.set(PERIOD_END, periodEnd)
+    }
+
+    Date getParamsExpirationDate() {
+        redis.get(PERIOD_END)
+    }
+
+    void updateParamsExpirationDate(Date newExpirationDate) {
+        redis.set(PERIOD_END,newExpirationDate)
     }
 
     String getStorageInfo() {

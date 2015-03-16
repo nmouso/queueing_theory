@@ -1,5 +1,7 @@
 package date
 
+import groovy.time.TimeCategory
+
 class DateTimeServiceMock implements IDateTimeService {
 
     Date date = new Date()
@@ -11,5 +13,17 @@ class DateTimeServiceMock implements IDateTimeService {
     @Override
     Date getDateTime() {
         return this.date
+    }
+
+    @Override
+    Date nowPlusSeconds(Integer seconds) {
+
+        Date date = null
+
+        use(TimeCategory) {
+            date = dateTime + seconds.seconds
+        }
+
+        date
     }
 }

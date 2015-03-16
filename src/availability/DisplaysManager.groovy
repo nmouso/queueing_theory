@@ -1,23 +1,15 @@
 package availability
 
 import date.IDateTimeService
-import groovy.time.TimeCategory
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
 import storage.AvailabilityStorage
 
 class DisplaysManager {
 
     AvailabilityStorage storage
-
     AvailabilityParams availabilityParams
-
     IDateTimeService dateTimeService
 
-    Log log = LogFactory.getLog(DisplaysManager.class)
-
     DisplaysManager(AvailabilityParams availabilityParams, AvailabilityStorage storage, IDateTimeService dateTimeService) {
-
         this.availabilityParams = availabilityParams
         this.storage = storage
         this.dateTimeService = dateTimeService
@@ -28,6 +20,13 @@ class DisplaysManager {
         TimeDuration period = new Period()
 
         if (period.shouldRecalculate()) {
+            
+            Date expirationDate = storage.getParamsExpirationDate()
+            
+            if (availabilityParams.areExpired(expirationDate)){
+                expirationDate=availabilityParams.refresh()
+                storage.updateParamsExpirationDate(expirationDate)
+            }
             period.recalculate()
         }
         else {
@@ -57,7 +56,7 @@ class DisplaysManager {
             clicks = clickCorrection.clicks + availabilityParams.clicksExpectedPerSlot
 
             // Generate end dates
-            Date slotEnd = nowPlusSeconds(availabilityParams.slotInSeconds)
+            Date slotEnd = dateTimeService.nowPlusSeconds(availabilityParams.slotInSeconds)
 
             storage.setClicks(clicks)
             storage.setDisplays(displays)
@@ -81,16 +80,6 @@ class DisplaysManager {
             [displays: displays, clicks: clicks]
         }
 
-        Date nowPlusSeconds(Integer seconds) {
-
-            Date date = null
-
-            use(TimeCategory) {
-                date = dateTimeService.dateTime + seconds.seconds
-            }
-
-            date
-        }
     }
 
     class Slot extends TimeDuration {
@@ -117,8 +106,7 @@ class DisplaysManager {
 
         @Override
         void doRecalculate() {
-
-            Date periodEnd = nowPlusSeconds(availabilityParams.slotInSeconds * availabilityParams.slotsPerPeriod)
+            Date periodEnd = dateTimeService.nowPlusSeconds(availabilityParams.slotInSeconds * availabilityParams.slotsPerPeriod)
             storage.setPeriodEnd(periodEnd)
         }
 
@@ -129,7 +117,6 @@ class DisplaysManager {
 
         @Override
         Boolean shouldRecalculate() {
-
             Date periodEnd = storage.getPeriodEnd()
             periodEnd ? (dateTimeService.dateTime >= periodEnd) : true
         }

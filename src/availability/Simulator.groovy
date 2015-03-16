@@ -1,14 +1,14 @@
 package availability
 
 import date.DateTimeService
-import org.apache.commons.logging.Log
-import org.apache.commons.logging.LogFactory
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
+import org.apache.log4j.PatternLayout
 import storage.AvailabilityStorage
 
 import static grails.async.Promises.task
 
 class Simulator {
-
 
     AvailabilityParams params
     DisplaysManager displaysManager
@@ -24,19 +24,18 @@ class Simulator {
         Random random = new Random()
         Map<Integer,List<Closure>> timeLine= [:]
 
-        def periodDuration = params.slotsPerPeriod * params.slotInSeconds
-        def totalDisplays = params.getDisplaysExpectedPerSlot()*params.slotsPerPeriod
+        def totalDuration = params.slotsPerPeriod * params.slotInSeconds*params.refreshRateInPeriods
+        def totalDisplays = params.getDisplaysExpectedPerSlot()*params.slotsPerPeriod*params.refreshRateInPeriods
 
         for(i in (1..totalDisplays)){
-
-            def displayTime = random.nextInt(periodDuration)
+            def displayTime = random.nextInt(totalDuration)
             if (!timeLine[displayTime])
                 timeLine[displayTime] =[]
             timeLine[displayTime]<<{ doDisplay()}
 
             def randomNumber = random.nextDouble()
             if (randomNumber<=params.clickConvergenceRate){
-                def clickTime = displayTime+random.nextInt(periodDuration-displayTime)
+                def clickTime = displayTime+random.nextInt(totalDuration-displayTime)
                 if (!timeLine[clickTime])
                     timeLine[clickTime] =[]
                 timeLine[clickTime]<<{ doClick()}
@@ -45,7 +44,7 @@ class Simulator {
         }
         println timeLine.sort()
 
-        for(i in (1..periodDuration)){
+        for(i in (1..totalDuration)){
             displaysManager.recalculate()
 
             println "Sec. ${i} : ${displaysManager.getDisplayManagerInfo()}"
