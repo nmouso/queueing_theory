@@ -1,42 +1,47 @@
 package availability
 
 import date.DateTimeService
-import date.DateTimeServiceMock
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import storage.AvailabilityStorage
-import storage.RedisMock
+
+import static grails.async.Promises.task
 
 class Simulator {
+
 
     AvailabilityParams params
     DisplaysManager displaysManager
     AvailabilityStorage storage
 
-    Simulator(){
-        params = new AvailabilityParams(clicksExpectedPerSlot:1,clickConvergenceRate: 0.4d,slotsPerPeriod:2,slotInSeconds:30)
-        storage= new AvailabilityStorage(new RedisMock())
+    Simulator(AvailabilityParams availabilityParams, AvailabilityStorage storage){
+        this.params=availabilityParams
+        this.storage=storage
         displaysManager = new DisplaysManager(params, storage,new DateTimeService())
     }
 
     def run (){
         Random random = new Random()
         Map<Integer,List<Closure>> timeLine= [:]
+
         def periodDuration = params.slotsPerPeriod * params.slotInSeconds
+        def totalDisplays = params.getDisplaysExpectedPerSlot()*params.slotsPerPeriod
 
-        for(i in (1..(params.getDisplaysExpectedPerSlot()*params.slotsPerPeriod))){
+        for(i in (1..totalDisplays)){
 
-            def display = random.nextInt(periodDuration)
-                if (timeLine[display])
-                timeLine[display]<<{ doDisplay()}
-            else
-                timeLine[display]=[{ doDisplay()}]
+            def displayTime = random.nextInt(periodDuration)
+            if (!timeLine[displayTime])
+                timeLine[displayTime] =[]
+            timeLine[displayTime]<<{ doDisplay()}
 
-            def possibleClick = display+random.nextInt(periodDuration-display)
             def randomNumber = random.nextDouble()
-            if (randomNumber<=params.clickConvergenceRate)
-                if (timeLine[possibleClick])
-                    timeLine[possibleClick]<<{ doClick()}
-                else
-                    timeLine[possibleClick]=[{ doClick()}]
+            if (randomNumber<=params.clickConvergenceRate){
+                def clickTime = displayTime+random.nextInt(periodDuration-displayTime)
+                if (!timeLine[clickTime])
+                    timeLine[clickTime] =[]
+                timeLine[clickTime]<<{ doClick()}
+            }
+
         }
         println timeLine.sort()
 
@@ -45,8 +50,8 @@ class Simulator {
 
             println "Sec. ${i} : ${displaysManager.getDisplayManagerInfo()}"
             def actions = timeLine[i]
-            if (actions){
-                actions.each {action->
+            actions?.each{action->
+                task {
                     action.call()
                 }
             }
